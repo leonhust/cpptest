@@ -1,4 +1,6 @@
-# 1. 不同券商行情处理
+## 以下测试题请使用c++实现，提供<ins>可编译</ins>的代码片段。
+
+## 1. 不同券商行情处理
 
 我们有个程序，需要部署到很多券商处。该程序其中一个模块在收到券商推送的股票行情时，需要利用行情计算该股票此时的中间价并打印出来，假设该函数名为`printMidPrice`。中间价 = (申卖价一+申买价一)/2。
 
@@ -36,7 +38,7 @@ struct MarketDataA {
 ```c++
 void onQuoteA(const MarketDataA& quote)
 {
-	printMidPrice(XXX);
+    printMidPrice(XXX);
 }
 ```
 
@@ -56,52 +58,62 @@ struct MarketDataB {
 ```c++
 void onQuoteB(const MarketDataB& quote)
 {
-	printMidPrice(XXX);
+    printMidPrice(XXX);
 }
 ```
 
-`printMidPrice`的实现会放在一个库里，不管接入多少券商，其实现不能修改。
+请实现`printMidPrice`函数以及从A和B券商收到行情后的处理流程。要求：
 
-请实现`printMidPrice`函数以及从A和B券商收到行情后的处理流程。
+- 算法需要封装在`printMidPrice`里，接入多家券商只需要**一个实现**，且不论接入多少券商，其内容无需修改。
+- printMidPrice只能接受一个整体的数据结构作为参数。不能写成：
+    ```c++
+    void printMidPrice(const char *symbol, const double &bid1, const double &ask1)
+    {
+        cout << "symbol:" << symbol
+            << ",mid price:" << (bid1 + ask1) / 2 << endl;
+    }
+    ```
 
-不能使用**额外的内存**来转换和存放行情。比如定义一个中间的数据结购，`MyMarketData`，在所有券商行情回调里将行情转换一下再调用`printMidPrice`：
+- **不能**使用**额外的内存**来存放行情。比如定义一个中间的数据结构，`MyMarketData`，在所有券商行情回调里将行情拷贝到`MyMarketData`的对象里再调用`printMidPrice`。错误示例：
 
-```c++
-struct MyMarketData {
-	std::string code;
-    double askPrice;       //申卖价一
-    double bidPrice;       //申买价一
-};
+    ```c++
+    struct MyMarketData {
+        std::string code;
+        double askPrice;       //申卖价一
+        double bidPrice;       //申买价一
+    };
 
-void printMidPrice(const MyMarketData& quote)
-{
-    double midPrice;
-    // 计算mid price
-	midPrice = (quote.askPrice + quote.bidPrice) / 2;
-    cout << "symbol:" << quote.code
-        << ",mid price:" << midPrice << endl;
-}
+    void printMidPrice(const MyMarketData& quote)
+    {
+        double midPrice;
+        // 计算mid price
+        midPrice = (quote.askPrice + quote.bidPrice) / 2;
+        cout << "symbol:" << quote.code
+            << ",mid price:" << midPrice << endl;
+    }
 
-void onQuoteA(const MarketDataA& quote)
-{
-    MyMarketData data;
-    data.code = quote.instrumentId;
-    data.askPrice = quote.askPrice1;
-    data.bidPrice = quote.bidPrice1;
-	printMidPrice(data);
-}
+    void onQuoteA(const MarketDataA& quote)
+    {
+        MyMarketData data; //不能使用额外的内存！！！
+        data.code = quote.instrumentId;
+        data.askPrice = quote.askPrice1;
+        data.bidPrice = quote.bidPrice1;
+        printMidPrice(data);
+    }
 
-void onQuoteB(const MarketDataB& quote)
-{
-    MyMarketData data;
-	data.code = quote.code;
-    data.askPrice = quote.askPrice[0];
-    data.bidPrice = quote.bidPrice[0];
-	printMidPrice(data);
-}
-```
+    void onQuoteB(const MarketDataB& quote)
+    {
+        MyMarketData data; //不能使用额外的内存！！！
+        data.code = quote.code;
+        data.askPrice = quote.askPrice[0];
+        data.bidPrice = quote.bidPrice[0];
+        printMidPrice(data);
+    }
+    ```
+- 可扩展性。如果有一个新的算法要用行情其他字段做计算，这个算法也可以只写一份放在库里。
+- 性能越高越好。
 
-# 2. 风控设计
+## 2. 风控设计
 
 有一套订单执行系统，它接收策略的报单信号，进行一系列处理，根据处理结果确定是拒绝报单还是把订单送到市场。
 
@@ -129,7 +141,7 @@ struct Order
 
 
 
-# 3. 回报分发
+## 3. 回报分发
 
 订单执行系统除了要处理报单，也要处理回报。
 
@@ -142,11 +154,16 @@ void Api::onRtnOrder(const OrderRtn& rtn)
 }
 
 ```
-假设有3个模块`class ModuleA`，`class ModuleB`和`class ModuleC`需要回报。请设计一个回报分发系统，在`class Api`收到市场里的订单回报后分发给其他模块。需要考虑扩展性，譬如又有一个新的`class ModuleD`需要回报的情况下，不能修改`Api`模块的代码。
+假设有3个模块`class ModuleA`，`class ModuleB`和`class ModuleC`需要回报。请设计一个回报分发系统，在`class Api`收到市场里的订单回报后分发给其他模块。要求：
 
-# 4. 回报触发
+- `class ModuleA`，`class ModuleB`和`class ModuleC`等都是独立模块，不能有任何关系（譬如都继承自某一个公共类）。
+- 需要考虑扩展性，譬如又有一个新的`class ModuleD`需要回报的情况下，不能修改`Api`模块的代码。
+- 订单执行系统是一个**进程**。
+
+## 4. 回报触发
 
 有一个低频策略，其根据收到行情做一些计算，确定是否要报单。报单可能有两种行为：a) 报到内部系统，b) 报到外部（报给订单执行系统）。
+
 报到内部系统还是外部，是初始化时确定的（通过参数），初始化后就不再改动。不管订单是报给内部还是外部，策略的行为要完全一样（包括内部状态维护和log打印）。
 
 策略大致框架如下：
@@ -155,7 +172,7 @@ void Api::onRtnOrder(const OrderRtn& rtn)
 // 收到行情
 void Strategy::onMarketData(const MarketData& md)
 {
-	std::unique_lock<std::mutex> lock(m_Lock);
+    std::unique_lock<std::mutex> lock(m_Lock);
     Order order;
     // 获取策略内部数据，并结合行情做一些计算
     // .......
@@ -175,7 +192,7 @@ void Strategy::sendOrderInternal(const Order& order)
     // 报到内部程序
     // ....
 
-    /// 认为订单已成交，请完成回报触发逻辑。不能修改其他函数。
+    /// 认为订单已成交，请完成回报触发逻辑。
 }
 
 // 外部报单
@@ -189,7 +206,7 @@ void Strategy::sendOrderExternal(const Order& order)
 // 回报，反馈订单的状态，如成交或撤单
 void Strategy::onRtnOrder(const OrderRtn& rtn)
 {
-	std::unique_lock<std::mutex> lock(m_Lock);
+    std::unique_lock<std::mutex> lock(m_Lock);
     // 仓位更新，log打印，策略状态维护等
     // ....
 }
@@ -197,4 +214,6 @@ void Strategy::onRtnOrder(const OrderRtn& rtn)
 
 如果是外部报单，有一个线程从订单执行系统收到回报后会调`Strategy::onRtnOrder`回调将订单的状态更新通知给策略。如果是内部报单，则没有这个逻辑。假如内部报单的话策略报出去后即可认为已经成交，为了维护策略内部状态正确，内部报单报完后需要自己触发回报。
 
-请完成`Strategy::sendOrderInternal`的回报触发逻辑。可以借助标准库或任何第三方库。
+请完成`Strategy::sendOrderInternal`的回报触发逻辑。要求：
+- 不能修改`onMarketData`和`onRtnOrder`函数，可以给Strategy类添加必要的数据或函数。
+- 可以借助标准库或任何第三方库。
