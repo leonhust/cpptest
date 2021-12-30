@@ -1,4 +1,4 @@
-## 以下测试题请使用c++实现，提供<ins>可编译</ins>的代码片段。
+## 以下测试题请使用c++实现，提供<ins>可编译</ins>的代码片段。希望逻辑清晰，代码简洁。除代码外也可以说说自己的理解。
 
 ## 1. 不同券商行情处理
 
@@ -82,7 +82,7 @@ void onQuoteB(const MarketDataB& quote)
         double askPrice;       //申卖价一
         double bidPrice;       //申买价一
     };
-
+    
     void printMidPrice(const MyMarketData& quote)
     {
         double midPrice;
@@ -91,7 +91,7 @@ void onQuoteB(const MarketDataB& quote)
         cout << "symbol:" << quote.code
             << ",mid price:" << midPrice << endl;
     }
-
+    
     void onQuoteA(const MarketDataA& quote)
     {
         MyMarketData data; //不能使用额外的内存！！！
@@ -100,7 +100,7 @@ void onQuoteB(const MarketDataB& quote)
         data.bidPrice = quote.bidPrice1;
         printMidPrice(data);
     }
-
+    
     void onQuoteB(const MarketDataB& quote)
     {
         MyMarketData data; //不能使用额外的内存！！！
@@ -125,6 +125,7 @@ void onQuoteB(const MarketDataB& quote)
 ```c++
 struct Order
 {
+    char instrumentId[20];  //股票代码，如: 111111.SH, 222222.SH
     uint64_t accountId; //报单账户（对应某个产品）
     double price;       //报单价格
     int32_t qty;        //报单数量
@@ -134,11 +135,10 @@ struct Order
 
 
 请设计一个风控系统满足上述要求。假设风控系统入口是`bool Risk::check(const Order& order)`。
-
-该系统需要哪些类构成？各需要什么样的对外接口？
 请实现入口函数`Risk::check`的逻辑，以及Risk类的必要初始化操作。其他具体的风控的逻辑可以不实现，只需要写好接口以及注释。
 
-
+该系统需要哪些类构成？各需要什么样的对外接口？
+如何易于添加新的产品或新的风控需求？譬如，如果突然要求当前所有产品（A，B，C）都不能交易代码为`123456.SH`的股票，如何实现？请在代码里体现。
 
 
 ## 3. 回报分发
